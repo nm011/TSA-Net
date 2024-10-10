@@ -20,12 +20,12 @@ def main():
         
     dataset_dir = (data_dir,mask_dir)
     
-    tf_config = tf.ConfigProto()
+    tf_config = tf.compat.v1.ConfigProto()
     os.environ["CUDA_VISIBLE_DEVICES"] = "3"
-    tf_config = tf.ConfigProto()
+    tf_config = tf.compat.v1.ConfigProto()
     tf_config.gpu_options.allow_growth = True
 
-    with tf.Session(config=tf_config) as sess:
+    with tf.compat.v1.Session(config=tf_config) as sess:
         Cube_Decoder = Decoder_Handler(dataset_dir=dataset_dir, model_config=model_config, sess = sess, is_training=True)
         Cube_Decoder.train()
 

@@ -26,7 +26,7 @@ def gaussian_blur(image, sigma, size, cdim=8,mode='VALID'):
     pad_w1 = total_pad + 1 // 2
     pad_w2 = total_pad // 2
 
-    image = tf.pad(image, [[0, 0], [pad_w1, pad_w2], [pad_w1, pad_w2], [0, 0]], mode='REFLECT')
+    image = tf.pad(tensor=image, paddings=[[0, 0], [pad_w1, pad_w2], [pad_w1, pad_w2], [0, 0]], mode='REFLECT')
 
     for channel_idx in range(cdim):
         data_c = image[:, :, :, channel_idx:(channel_idx + 1)]
@@ -34,11 +34,11 @@ def gaussian_blur(image, sigma, size, cdim=8,mode='VALID'):
         g = np.expand_dims(g, axis=2)
         g = np.expand_dims(g, axis=3)
 
-        data_c = tf.nn.conv2d(data_c, g, [1, 1, 1, 1], mode)
+        data_c = tf.nn.conv2d(input=data_c, filters=g, strides=[1, 1, 1, 1], padding=mode)
         g = np.expand_dims(kernel, 1)
         g = np.expand_dims(g, axis=2)
         g = np.expand_dims(g, axis=3)
-        data_c = tf.nn.conv2d(data_c, g, [1, 1, 1, 1], mode)
+        data_c = tf.nn.conv2d(input=data_c, filters=g, strides=[1, 1, 1, 1], padding=mode)
         outputs.append(data_c)
     return tf.concat(outputs, axis=3)
 
@@ -48,18 +48,18 @@ def kernel_blur(image, kernel, cdim=8,pad=True,mode='VALID'):
     if pad:
         pad_w1 = (kernel.shape[0]-1) // 2
         pad_w2 = (kernel.shape[0]) // 2
-        image = tf.pad(image, [[0, 0], [pad_w1, pad_w2], [pad_w1, pad_w2], [0, 0]], mode='REFLECT')
+        image = tf.pad(tensor=image, paddings=[[0, 0], [pad_w1, pad_w2], [pad_w1, pad_w2], [0, 0]], mode='REFLECT')
     for channel_idx in range(cdim):
         data_c = image[:, :, :, channel_idx:(channel_idx + 1)]
         g = np.expand_dims(kernel, 0)
         g = np.expand_dims(g, axis=2)
         g = np.expand_dims(g, axis=3)
 
-        data_c = tf.nn.conv2d(data_c, g, [1, 1, 1, 1], mode)
+        data_c = tf.nn.conv2d(input=data_c, filters=g, strides=[1, 1, 1, 1], padding=mode)
         g = np.expand_dims(kernel, 1)
         g = np.expand_dims(g, axis=2)
         g = np.expand_dims(g, axis=3)
-        data_c = tf.nn.conv2d(data_c, g, [1, 1, 1, 1], mode)
+        data_c = tf.nn.conv2d(input=data_c, filters=g, strides=[1, 1, 1, 1], padding=mode)
         outputs.append(data_c)
     return tf.concat(outputs, axis=3)
 
@@ -107,8 +107,8 @@ def _SSIMForMultiScale(img1, img2, max_val=1, filter_size=11,
     v1 = 2.0 * sigma12 + c2
     v2 = sigma11 + sigma22 + c2
     ssim = (((2.0 * mu12 + c1) * v1) / ((mu11 + mu22 + c1) * v2))
-    ssim = tf.reduce_mean(ssim)
-    cs = tf.reduce_mean(v1 / v2)
+    ssim = tf.reduce_mean(input_tensor=ssim)
+    cs = tf.reduce_mean(input_tensor=v1 / v2)
     return ssim,cs
 
 
@@ -156,16 +156,16 @@ def MultiScaleSSIM(img1, img2, max_val=1, filter_size=11, filter_sigma=1.5,
         raise RuntimeError('Input images must have four dimensions, not %d',
                            len(img1.shape))
 
-    with tf.name_scope(name, 'ms-ssim'):
+    with tf.compat.v1.name_scope(name, 'ms-ssim'):
         if data_format == 'NCHW':
-            img1, img2 = tf.transpose(img1, (0, 2, 3, 1)), tf.transpose(img2, (0, 2, 3, 1))
+            img1, img2 = tf.transpose(a=img1, perm=(0, 2, 3, 1)), tf.transpose(a=img2, perm=(0, 2, 3, 1))
             data_format = 'NHWC'
 
         # Note: default weights don't sum to 1.0 but do match the paper / matlab code.
         weights = np.array(weights if weights else
                            [0.0448, 0.2856, 0.3001, 0.2363, 0.1333])
         levels = weights.size
-        weights = tf.convert_to_tensor(weights,dtype=tf.float32)
+        weights = tf.convert_to_tensor(value=weights,dtype=tf.float32)
         downsample_filter = np.ones((2,)) / 2.0
         im1, im2 = (img1,img2)
         mssim = []
@@ -182,6 +182,6 @@ def MultiScaleSSIM(img1, img2, max_val=1, filter_size=11, filter_sigma=1.5,
         mcs = tf.stack(list(mcs), axis=0)
         mssim = tf.stack(list(mssim), axis=0)
 
-        return (tf.reduce_prod(mcs[0:levels - 1] ** weights[0:levels - 1]) *
+        return (tf.reduce_prod(input_tensor=mcs[0:levels - 1] ** weights[0:levels - 1]) *
                 (mssim[levels - 1] ** weights[levels - 1]))
 

@@ -32,17 +32,17 @@ class Decoder_Handler(Basement_Handler):
         shape_meas = (self.batch_size, self.H, self.W ,self.nC)      # PhiTy
         shape_mask = (self.H, self.W, self.nC)
         shape_truth = (self.batch_size, self.H, self.W ,self.nC)
-        self.meas_sample = tf.placeholder(tf.float32, shape=shape_meas, name='input_meas')
-        self.sense_matrix = tf.placeholder(tf.float32, shape=shape_mask, name='input_mask')
-        self.truth = tf.placeholder(tf.float32, shape=shape_truth, name='output_truth')
+        self.meas_sample = tf.compat.v1.placeholder(tf.float32, shape=shape_meas, name='input_meas')
+        self.sense_matrix = tf.compat.v1.placeholder(tf.float32, shape=shape_mask, name='input_mask')
+        self.truth = tf.compat.v1.placeholder(tf.float32, shape=shape_truth, name='output_truth')
         
         # Initialization for the model training procedure.
-        self.learning_rate = tf.get_variable('learning_rate', shape=(), initializer=tf.constant_initializer(self.lr_init),trainable=False)
-        self.lr_new = tf.placeholder(tf.float32, shape=(), name='lr_new')
-        self.lr_update = tf.assign(self.learning_rate, self.lr_new, name='lr_update')
+        self.learning_rate = tf.compat.v1.get_variable('learning_rate', shape=(), initializer=tf.compat.v1.constant_initializer(self.lr_init),trainable=False)
+        self.lr_new = tf.compat.v1.placeholder(tf.float32, shape=(), name='lr_new')
+        self.lr_update = tf.compat.v1.assign(self.learning_rate, self.lr_new, name='lr_update')
         self.train_test_valid_assignment()
         self.trainable_parameter_info()
-        self.saver = tf.train.Saver(tf.global_variables())
+        self.saver = tf.compat.v1.train.Saver(tf.compat.v1.global_variables())
 
     def initial_parameter(self):
         # Configuration Set
@@ -86,18 +86,18 @@ class Decoder_Handler(Basement_Handler):
                      tf.expand_dims(self.sense_matrix,0),
                      self.truth)
         
-        with tf.name_scope('Train'):
-            with tf.variable_scope('Depth_Decoder', reuse=False):
+        with tf.compat.v1.name_scope('Train'):
+            with tf.compat.v1.variable_scope('Depth_Decoder', reuse=False):
                 self.Decoder_train = Depth_Decoder(value_set,self.learning_rate,self.sess,self.model_config,is_training=True)
-        with tf.name_scope('Val'):
-            with tf.variable_scope('Depth_Decoder', reuse=True):
+        with tf.compat.v1.name_scope('Val'):
+            with tf.compat.v1.variable_scope('Depth_Decoder', reuse=True):
                 self.Decoder_valid = Depth_Decoder(value_set,self.learning_rate,self.sess,self.model_config,is_training=False)
-        with tf.name_scope('Test'):
-            with tf.variable_scope('Depth_Decoder', reuse=True):
+        with tf.compat.v1.name_scope('Test'):
+            with tf.compat.v1.variable_scope('Depth_Decoder', reuse=True):
                 self.Decoder_test = Depth_Decoder(value_set,self.learning_rate,self.sess,self.model_config,is_training=False)
                 
     def train(self):
-        self.sess.run(tf.global_variables_initializer())
+        self.sess.run(tf.compat.v1.global_variables_initializer())
         print('Training Started')
         if self.model_config['model_filename'] is not None:
             self.restore()
@@ -109,12 +109,12 @@ class Decoder_Handler(Basement_Handler):
             # Training Preparation: Learning rate pre=setting, Model Interface summary.
             start_time = time.time()
             cur_lr = self.calculate_scheduled_lr(epoch_cnt)
-            train_fetches = {'global_step': tf.train.get_or_create_global_step(), 
+            train_fetches = {'global_step': tf.compat.v1.train.get_or_create_global_step(), 
                              'train_op':self.Decoder_train.train_op,
                              'metrics':self.Decoder_train.metrics,
                              'pred_orig':self.Decoder_train.decoded_image,
                              'loss':self.Decoder_train.loss}
-            valid_fetches = {'global_step': tf.train.get_or_create_global_step(),
+            valid_fetches = {'global_step': tf.compat.v1.train.get_or_create_global_step(),
                             'pred_orig':self.Decoder_valid.decoded_image,
                              'metrics':self.Decoder_valid.metrics,
                             'loss':self.Decoder_valid.loss}
@@ -179,7 +179,7 @@ class Decoder_Handler(Basement_Handler):
         print("Testing Started")
         self.restore()
         start_time = time.time()
-        test_fetches = {'global_step': tf.train.get_or_create_global_step(),
+        test_fetches = {'global_step': tf.compat.v1.train.get_or_create_global_step(),
                         'pred_orig':   self.Decoder_test.decoded_image,
                         'metrics':     self.Decoder_test.metrics,
                         'loss':        self.Decoder_test.loss}

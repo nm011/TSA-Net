@@ -22,4 +22,3 @@ class Basement_TFModel(object):
 
     def set_lr(self,new_learning_rate):
         self.learning_rate = new_learning_rate
-    

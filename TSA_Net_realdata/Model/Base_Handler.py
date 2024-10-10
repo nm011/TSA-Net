@@ -33,20 +33,20 @@ class Basement_Handler(object):
         
         self.log_dir = log_dir
         self.logger = get_logger(self.log_dir, folder_dir)
-        self.writer = tf.summary.FileWriter(self.log_dir)
+        self.writer = tf.compat.v1.summary.FileWriter(self.log_dir)
 
     def trainable_parameter_info(self):
         total_parameters = 0
-        for variable in tf.trainable_variables():
+        for variable in tf.compat.v1.trainable_variables():
             total_parameters += np.product([x.value for x in variable.get_shape()])
 
         self.logger.info('Total number of trainable parameters: %d' % total_parameters)
-        for var in tf.global_variables():
+        for var in tf.compat.v1.global_variables():
             self.logger.debug('%s, %s' % (var.name, var.get_shape()))
     
     def summary_logging(self, global_step, names, values):
         for name, value in zip(names, values):
-            summary = tf.Summary()
+            summary = tf.compat.v1.Summary()
             summary_value = summary.value.add()
             summary_value.simple_value = value
             summary_value.tag = name
@@ -55,7 +55,7 @@ class Basement_Handler(object):
     def save_model(self, saver, epoch, val_loss):
         config_filename = 'config_%02d.yaml' % epoch
         config = dict(self.model_config)
-        global_step = self.sess.run(tf.train.get_or_create_global_step())
+        global_step = self.sess.run(tf.compat.v1.train.get_or_create_global_step())
         config['epoch'] = epoch
         config['log_dir'] = self.log_dir
         config['model_filename'] = saver.save(self.sess, os.path.join(self.log_dir, 'models-%.4f' % val_loss),
@@ -68,6 +68,5 @@ class Basement_Handler(object):
         
         config = dict(self.model_config)
         model_filename = config['model_filename']
-        saver = tf.train.Saver(tf.global_variables())
+        saver = tf.compat.v1.train.Saver(tf.compat.v1.global_variables())
         saver.restore(self.sess, model_filename)
-    

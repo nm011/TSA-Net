@@ -41,11 +41,11 @@ class Depth_Decoder(Basement_TFModel):
             'scale':True,
             'is_training':phase_train,
             # Moving averages ends up in the trainable variables collection
-            'variables_collections': [tf.GraphKeys.TRAINABLE_VARIABLES],}
+            'variables_collections': [tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES],}
         
         with slim.arg_scope([slim.conv2d, slim.fully_connected,slim.conv2d_transpose],
                             weights_initializer=slim.initializers.xavier_initializer(),
-                            weights_regularizer=slim.l2_regularizer(weight_decay),
+                            weights_regularizer=tf.keras.regularizers.l2(0.5 * (weight_decay)),
                             normalizer_fn=slim.batch_norm,normalizer_params=batch_norm_params):
             return self.encoder_decoder(images, is_training=phase_train,dropout_keep_prob=keep_probability,reuse=reuse)
     
@@ -85,7 +85,7 @@ class Depth_Decoder(Basement_TFModel):
             
     def encoder_decoder(self, inputs, is_training=True, dropout_keep_prob=0.8, reuse=None, scope='generator'):
         self.end_points = {}
-        with tf.variable_scope(scope, 'generator', [inputs], reuse=reuse):
+        with tf.compat.v1.variable_scope(scope, 'generator', [inputs], reuse=reuse):
             with slim.arg_scope([slim.batch_norm, slim.dropout],is_training=is_training):
                 with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d],stride=1, padding='SAME'):
                     ############################# encoder ##############################################
@@ -94,7 +94,7 @@ class Depth_Decoder(Basement_TFModel):
                     net = self.EncConv_module(net,3,self.hyper_structure[2])
                     net = self.EncConv_module(net,4,self.hyper_structure[3])
 
-                    with tf.variable_scope('share',reuse=tf.AUTO_REUSE): #tf.compat.AUTO_REUSE
+                    with tf.compat.v1.variable_scope('share',reuse=tf.compat.v1.AUTO_REUSE): #tf.compat.AUTO_REUSE
                         for recur_ind in range(1):
                             net = self.EncConv_module(net,5,self.hyper_structure[4])
                             (lnum,knum,ksize) = self.end_encoder
@@ -129,18 +129,18 @@ class Depth_Decoder(Basement_TFModel):
             self.loss = loss_rmse(model_output, ground_truth)
             
         self.metrics = calculate_metrics(model_output, ground_truth)
-        global_step = tf.train.get_or_create_global_step()
+        global_step = tf.compat.v1.train.get_or_create_global_step()
             
         if self.is_training:
-            optimizer = tf.train.AdamOptimizer(self.learning_rate)
-            tvars = tf.trainable_variables()
-            grads = tf.gradients(self.loss, tvars)
+            optimizer = tf.compat.v1.train.AdamOptimizer(self.learning_rate)
+            tvars = tf.compat.v1.trainable_variables()
+            grads = tf.gradients(ys=self.loss, xs=tvars)
             grads, _ = tf.clip_by_global_norm(grads, self.max_grad_norm)
             self.train_op = optimizer.apply_gradients(zip(grads, tvars), global_step=global_step, name='train_op')
-        self.info_merge = tf.summary.merge_all()
+        self.info_merge = tf.compat.v1.summary.merge_all()
 
     def module_res2net(self, net, module_ind=0, subsets=4,scope='Enc'):
-        with tf.variable_scope(scope+'module_res_%d'%(module_ind)):
+        with tf.compat.v1.variable_scope(scope+'module_res_%d'%(module_ind)):
             (batch_size,height,width,num_feature) = net.get_shape().as_list()
             #print (batch_size,height,width,num_feature)
             size_set = int(num_feature/subsets)
@@ -194,17 +194,17 @@ class Depth_Decoder(Basement_TFModel):
         ker = [(1,5),(3,5)]
         std = [(1,2),(2,2)]
         if direct == 'Y':
-            att_in == tf.transpose(att_in,[0,2,1,3])
+            att_in == tf.transpose(a=att_in,perm=[0,2,1,3])
         feature = slim.conv2d(att_in, num_heads, ker[mode[0]], stride=std[mode[0]], padding='SAME',scope=scope_root+'Conv_1')
         feature = slim.conv2d(feature, num_heads, ker[mode[1]], stride=std[mode[1]], padding='SAME',scope=scope_root+'Conv_2')
-        feature = slim.fully_connected(tf.transpose(feature,[0,1,3,2]), dim_feature, scope=scope_root+'FC')
-        return tf.transpose(feature,[0,1,3,2])
+        feature = slim.fully_connected(tf.transpose(a=feature,perm=[0,1,3,2]), dim_feature, scope=scope_root+'FC')
+        return tf.transpose(a=feature,perm=[0,1,3,2])
 
     def spectral_fea(self, att_in, num_heads, dim_feature, scope_root):
         dim_lambda = att_in.get_shape().as_list()[-1]
         feature = slim.conv2d(att_in, dim_lambda, 5, stride=2, padding='VALID',scope=scope_root+'Conv_1')
         feature = slim.conv2d(feature, dim_lambda, 5, stride=2, padding='VALID',scope=scope_root+'Conv_2')
-        feature = tf.reshape(tf.transpose(feature,[0,3,1,2]), [self.batch_size, dim_lambda, -1])
+        feature = tf.reshape(tf.transpose(a=feature,perm=[0,3,1,2]), [self.batch_size, dim_lambda, -1])
         feature = slim.fully_connected(feature, num_heads*dim_feature, scope=scope_root+'FC')
         return feature
 
@@ -220,9 +220,9 @@ class Depth_Decoder(Basement_TFModel):
         assert Q_lambda.get_shape().as_list() == K_lambda.get_shape().as_list()
         #print('K_x',K_x.get_shape().as_list(),'K_y',K_y.get_shape().as_list(),'K_lambda',K_lambda.get_shape().as_list())
 
-        AM_x = tf.matmul(Q_x, tf.transpose(K_x, [0, 2, 1])) / tf.sqrt(tf.cast(space_unit, tf.float32))
-        AM_y = tf.matmul(Q_y, tf.transpose(K_y, [0, 2, 1])) / tf.sqrt(tf.cast(space_unit, tf.float32))
-        AM_lambda = tf.matmul(Q_lambda, tf.transpose(K_lambda, [0, 2, 1])) / tf.sqrt(tf.cast(spec_unit, tf.float32))        
+        AM_x = tf.matmul(Q_x, tf.transpose(a=K_x, perm=[0, 2, 1])) / tf.sqrt(tf.cast(space_unit, tf.float32))
+        AM_y = tf.matmul(Q_y, tf.transpose(a=K_y, perm=[0, 2, 1])) / tf.sqrt(tf.cast(space_unit, tf.float32))
+        AM_lambda = tf.matmul(Q_lambda, tf.transpose(a=K_lambda, perm=[0, 2, 1])) / tf.sqrt(tf.cast(spec_unit, tf.float32))        
 
         AM_x = tf.nn.softmax(AM_x, 2)
         AM_y = tf.nn.softmax(AM_y, 2)
@@ -249,16 +249,16 @@ class Depth_Decoder(Basement_TFModel):
         #print(shape_x,shape_y,shape_lambda)
 
         out = tf.reshape(tf.matmul(AM_x, tf.reshape(V_headbatch,[headbatch, shape_x[1], -1])), shape_x)
-        out = tf.transpose(out,perm=[0,2,1,3])
+        out = tf.transpose(a=out,perm=[0,2,1,3])
         out = tf.reshape(tf.matmul(AM_y, tf.reshape(out,[headbatch, shape_y[1], -1])), shape_y)
-        out = tf.transpose(out,perm=[0,2,1,3])
+        out = tf.transpose(a=out,perm=[0,2,1,3])
 
         if sum(mode) > 0:
             out = slim.conv2d_transpose(out, dim_lambda, scale, stride=scale, padding='SAME')
         #print('Deconv', out.get_shape().as_list())
 
-        out = tf.reshape(tf.matmul(AM_lambda, tf.reshape(tf.transpose(out,perm=[0,3,1,2]),[headbatch, dim_lambda, -1])), shape_lambda)
-        out = tf.concat(tf.split(tf.transpose(out,perm=[0,2,3,1]), num_heads, axis=0), axis=3)
+        out = tf.reshape(tf.matmul(AM_lambda, tf.reshape(tf.transpose(a=out,perm=[0,3,1,2]),[headbatch, dim_lambda, -1])), shape_lambda)
+        out = tf.concat(tf.split(tf.transpose(a=out,perm=[0,2,3,1]), num_heads, axis=0), axis=3)
         out = slim.fully_connected(out, dim_lambda, activation_fn=None, scope='Head_fuse_%d'%(module_idx))
         return out
 
@@ -268,7 +268,7 @@ class Depth_Decoder(Basement_TFModel):
         att = np.zeros((dim_lambda,dim_lambda))
         for i in range(dim_lambda):
             att[i,:] = orig[dim_lambda-1-i:2*dim_lambda-1-i]
-        AM_Mask = tf.expand_dims(tf.convert_to_tensor(att, dtype=tf.float32),0)
+        AM_Mask = tf.expand_dims(tf.convert_to_tensor(value=att, dtype=tf.float32),0)
         return AM_Mask
     
     def kronecker_product_tf(self, mat1, mat2):
@@ -278,4 +278,3 @@ class Depth_Decoder(Basement_TFModel):
         mat2_rsh = tf.reshape(mat2, [bs, 1, m2, 1, n2])
         return tf.reshape(mat1_rsh * mat2_rsh, [bs, m1 * m2, n1 * n2])
     
- 
