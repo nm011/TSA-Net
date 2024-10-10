@@ -35,10 +35,21 @@ class Basement_Handler(object):
         self.logger = get_logger(self.log_dir, folder_dir)
         self.writer = tf.compat.v1.summary.FileWriter(self.log_dir)
 
+    # def trainable_parameter_info(self):
+    #     total_parameters = 0
+    #     for variable in tf.compat.v1.trainable_variables():
+    #         total_parameters += np.product([x.value for x in variable.get_shape()])
+
+    #     self.logger.info('Total number of trainable parameters: %d' % total_parameters)
+    #     for var in tf.compat.v1.global_variables():
+    #         self.logger.debug('%s, %s' % (var.name, var.get_shape()))
+
     def trainable_parameter_info(self):
         total_parameters = 0
         for variable in tf.compat.v1.trainable_variables():
-            total_parameters += np.product([x.value for x in variable.get_shape()])
+            # Convert shape to list and handle both static and dynamic dimensions
+            shape = variable.get_shape().as_list()
+            total_parameters += np.product([s if s is not None else 1 for s in shape])
 
         self.logger.info('Total number of trainable parameters: %d' % total_parameters)
         for var in tf.compat.v1.global_variables():
