@@ -172,24 +172,71 @@ class Decoder_Handler(Basement_Handler):
             epoch_cnt += 1
             sys.stdout.flush()
 
-    def test(self):
+    # def test(self):
         
+    #     print("Testing Started")
+    #     # self.restore()
+    #     start_time = time.time()
+    #     test_fetches = {'global_step': tf.compat.v1.train.get_or_create_global_step(),
+    #                     'pred_orig':   self.Decoder_test.decoded_image,
+    #                     'metrics':     self.Decoder_test.metrics,
+    #                     'loss':        self.Decoder_test.loss}
+        
+    #     for tested_batch in range(self.test_size):
+    #         (measure_test,mask_train,ground_test) = self.gen_test.__next__()
+    #         feed_dict_test = {self.meas_sample: measure_test,self.sense_matrix: mask_train,self.truth: ground_test}
+    #         test_output = self.sess.run(test_fetches,feed_dict=feed_dict_test)
+    #     ## save recon
+    #     for i in range(len(self.testing_list)):
+    #         sio.savemat('./'+self.log_dir+'/Recon_'+self.testing_list[i], {'recon': np.float32(np.squeeze(test_output['pred_orig'][i,:,:,:]))} )
+
+    def test(self):
         print("Testing Started")
         # self.restore()
         start_time = time.time()
-        test_fetches = {'global_step': tf.compat.v1.train.get_or_create_global_step(),
-                        'pred_orig':   self.Decoder_test.decoded_image,
-                        'metrics':     self.Decoder_test.metrics,
-                        'loss':        self.Decoder_test.loss}
         
-        for tested_batch in range(self.test_size):
-            (measure_test,mask_train,ground_test) = self.gen_test.__next__()
-            feed_dict_test = {self.meas_sample: measure_test,self.sense_matrix: mask_train,self.truth: ground_test}
-            test_output = self.sess.run(test_fetches,feed_dict=feed_dict_test)
-        ## save recon
-        for i in range(len(self.testing_list)):
-            sio.savemat('./'+self.log_dir+'/Recon_'+self.testing_list[i], {'recon': np.float32(np.squeeze(test_output['pred_orig'][i,:,:,:]))} )
+        # Initialize variables before testing
+        init_op = tf.compat.v1.global_variables_initializer()
+        self.sess.run(init_op)
         
+        test_fetches = {
+            'global_step': tf.compat.v1.train.get_or_create_global_step(),
+            'pred_orig': self.Decoder_test.decoded_image,
+            'metrics': self.Decoder_test.metrics,
+            'loss': self.Decoder_test.loss
+        }
+        
+        try:
+            print("Iterating over self.test_size...")
+            test_outputs = []
+            for tested_batch in range(self.test_size):
+                print(f"Processing batch {tested_batch + 1}/{self.test_size}")
+                
+                print("Generating test data...")
+                measure_test, mask_train, ground_test = self.gen_test.__next__()
+                
+                print("Running inference...")
+                feed_dict_test = {
+                    self.meas_sample: measure_test,
+                    self.sense_matrix: mask_train,
+                    self.truth: ground_test
+                }
+                
+                test_output = self.sess.run(test_fetches, feed_dict=feed_dict_test)
+                test_outputs.append(test_output)
+            
+            print("Saving reconstructions...")
+            for i in range(len(self.testing_list)):
+                output_path = os.path.join(self.log_dir, f'Recon_{self.testing_list[i]}')
+                recon_data = np.float32(np.squeeze(test_outputs[0]['pred_orig'][i,:,:,:]))
+                sio.savemat(output_path, {'recon': recon_data})
+            
+            print(f"Testing finished. Total time: {time.time() - start_time:.2f} seconds")
+            
+        except Exception as e:
+            print(f"Error during testing: {e}")
+            raise
+
     def calculate_scheduled_lr(self, epoch, min_lr=1e-8):
         decay_factor = int(math.ceil((epoch - self.lr_decay_epoch) / float(self.lr_decay_interval)))
         new_lr = self.lr_init * (self.lr_decay_coe ** max(0, decay_factor))
