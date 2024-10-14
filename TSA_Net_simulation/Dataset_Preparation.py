@@ -59,7 +59,7 @@ def prepare_training_data(input_dir, output_base_dir):
                 img = resize_data(img, (256, 256, 28))
             
             sio.savemat(output_path, {'img': img})
-
+    
     mask_source = os.path.join(input_dir, 'mask.mat')
     if os.path.exists(mask_source):
         shutil.copy2(mask_source, os.path.join(dirs['mask'], 'mask.mat'))
