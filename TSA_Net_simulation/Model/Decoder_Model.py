@@ -106,9 +106,11 @@ class Depth_Decoder(Basement_TFModel):
             net = inputs
             
             # Encoder
+            encoder_outputs = []
             for i, (lnum, knum, ksize, pstr) in enumerate(self.hyper_structure):
                 for j in range(1, lnum + 1):
                     net = conv_block(net, knum, ksize, name=f'en_{i+1}_{j}')
+                encoder_outputs.append(net)
                 if i < len(self.hyper_structure) - 1:  # Don't pool after last layer
                     net = layers.MaxPooling2D(pool_size=pstr, strides=pstr, padding='same', name=f'Pool{i+1}')(net)
                 self.end_points[f'encode_{i+1}'] = net
@@ -116,8 +118,16 @@ class Depth_Decoder(Basement_TFModel):
             # Decoder
             for i in reversed(range(len(self.hyper_structure))):
                 lnum, knum, ksize, pstr = self.hyper_structure[i]
+                
+                # Upsample
                 net = layers.Conv2DTranspose(knum, pstr, strides=pstr, padding='same')(net)
-                net = layers.Concatenate()([net, self.end_points[f'encode_{i+1}']])
+                
+                # Ensure the shapes match before concatenating
+                if net.shape[1:3] != encoder_outputs[i].shape[1:3]:
+                    net = layers.Resizing(encoder_outputs[i].shape[1], encoder_outputs[i].shape[2])(net)
+                
+                net = layers.Concatenate()([net, encoder_outputs[i]])
+                
                 for j in range(1, lnum + 1):
                     net = conv_block(net, knum, ksize, name=f'de_{i+1}_{j}')
 
