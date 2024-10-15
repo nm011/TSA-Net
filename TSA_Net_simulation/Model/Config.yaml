@@ -18,7 +18,7 @@ num_height: 256
 num_channel: 28
 batch_size: 10
 # Model training Controler
-epochs: 300
+epochs: 100
 patience: 400
 learning_rate: 0.004
 lr_decay: 0.6

@@ -21,7 +21,7 @@ def main():
     dataset_dir = (data_dir,mask_dir)
     
     tf_config = tf.compat.v1.ConfigProto()
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0 "
     tf_config = tf.compat.v1.ConfigProto()
     tf_config.gpu_options.allow_growth = True
 
