@@ -5,6 +5,8 @@ import numpy as np
 import math
 import os
 import json
+from tensorflow.keras import layers
+
 
 from Lib.Utility import *
 from Model.Base_TFModel import Basement_TFModel
@@ -94,37 +96,33 @@ class Depth_Decoder(Basement_TFModel):
             
     def encoder_decoder(self, inputs, is_training=True, dropout_keep_prob=0.8, reuse=None, scope='generator'):
         self.end_points = {}
-        with tf.compat.v1.variable_scope(scope, 'generator', [inputs], reuse=reuse):
-            with slim.arg_scope([slim.batch_norm, slim.dropout],is_training=is_training):
-                with slim.arg_scope([slim.conv2d, slim.max_pool2d, slim.avg_pool2d],stride=1, padding='SAME'):
-                    ############################# encoder ##############################################
-                    net = self.EncConv_module(inputs,1,self.hyper_structure[0],False)
-                    net = self.EncConv_module(net,2,self.hyper_structure[1],False)
-                    net = self.EncConv_module(net,3,self.hyper_structure[2])
-                    net = self.EncConv_module(net,4,self.hyper_structure[3])
+        
+        def conv_block(x, filters, kernel_size, strides=1, padding='same', name=None):
+            x = layers.Conv2D(filters, kernel_size, strides=strides, padding=padding, name=name)(x)
+            x = layers.BatchNormalization()(x)
+            return layers.Activation('relu')(x)
 
-                    with tf.compat.v1.variable_scope('share',reuse=tf.compat.v1.AUTO_REUSE): #tf.compat.AUTO_REUSE
-                        for recur_ind in range(2):
-                            #with tf.variable_scope('Recur_%d'%(recur_ind)):
-                            net = self.EncConv_module(net,5,self.hyper_structure[4])
-                            (lnum,knum,ksize) = self.end_encoder
-                            net = slim.conv2d(net, knum, ksize, stride=1, padding='SAME', scope='en_6')
-                            net = slim.conv2d(net, knum, ksize, stride=1, padding='SAME', scope='en_7')
-                            net = self.DecConv_module(net, 5, self.hyper_structure[3])
+        with tf.name_scope(scope):
+            net = inputs
+            
+            # Encoder
+            for i, (lnum, knum, ksize, pstr) in enumerate(self.hyper_structure):
+                for j in range(1, lnum + 1):
+                    net = conv_block(net, knum, ksize, name=f'en_{i+1}_{j}')
+                if i < len(self.hyper_structure) - 1:  # Don't pool after last layer
+                    net = layers.MaxPooling2D(pool_size=pstr, strides=pstr, padding='same', name=f'Pool{i+1}')(net)
+                self.end_points[f'encode_{i+1}'] = net
 
-                    ############################# decoder ##############################################
-                    net = self.DecConv_module(net,4,self.hyper_structure[3])
-                    net = self.DecConv_module(net,3,self.hyper_structure[2])
-                    dim_lambda,att_unit,num_head = self.hyper_structure[2][1],(64, 64, 80, 3),8
-                    net = self.Transform_layer(net,1,dim_lambda,att_unit,num_head,[0,0])
-                    net = self.DecConv_module(net,2,self.hyper_structure[1],False)
-                    dim_lambda,att_unit,num_head = self.hyper_structure[1][1],(64, 64, 40, 3),8
-                    net = self.Transform_layer(net,2,dim_lambda,att_unit,num_head,[1,0])
-                    net = self.DecConv_module(net,1,self.hyper_structure[0],False)
-                    dim_lambda,att_unit,num_head = 28,(48, 48, 30, 3),4
-                    spectral_mask = self.Spectral_Mask(dim_lambda)
-                    net = self.Transform_layer(net,3,dim_lambda,att_unit,num_head,[1,1],spectral_mask)
-                    net=slim.conv2d(net,self.depth,1,stride=1,padding='SAME',activation_fn=tf.nn.sigmoid, scope='Final_recon')
+            # Decoder
+            for i in reversed(range(len(self.hyper_structure))):
+                lnum, knum, ksize, pstr = self.hyper_structure[i]
+                net = layers.Conv2DTranspose(knum, pstr, strides=pstr, padding='same')(net)
+                net = layers.Concatenate()([net, self.end_points[f'encode_{i+1}']])
+                for j in range(1, lnum + 1):
+                    net = conv_block(net, knum, ksize, name=f'de_{i+1}_{j}')
+
+            net = layers.Conv2D(self.depth, 1, activation='sigmoid', name='Final_recon')(net)
+
         return net
     
     def metric_opt(self, model_output, ground_truth):

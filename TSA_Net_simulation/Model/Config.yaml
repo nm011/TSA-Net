@@ -17,7 +17,7 @@ num_width: 256
 num_height: 256
 num_channel: 28
 batch_size: 10
-# Model training Controler
+# Model training Controller
 epochs: 100
 patience: 400
 learning_rate: 0.004
