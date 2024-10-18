@@ -4,6 +4,7 @@ TSA_Net_simulation/Data/Valid_truth
 TSA_Net_simulation/Lib/__pycache__
 TSA_Net_simulation/Model/__pycache__
 TSA_Net_simulation/Result/Model-Config
+TSA_Net_simulation/Result/Testing-Result
 
 TSA_Net_realdata/Result/Testing-Result
 TSA_Net_realdata/Result/Model-Config
