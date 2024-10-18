@@ -16,7 +16,7 @@ GPU: 0
 num_width: 660
 num_height: 660
 num_channel: 28
-batch_size: 5
+batch_size: 1
 # Model training Controler
 epochs: 300
 learning_rate: 0.001

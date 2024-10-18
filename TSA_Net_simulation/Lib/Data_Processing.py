@@ -48,6 +48,12 @@ def Data_Generator_File(data_dir, data_list, mask, batch_size, is_training=True,
                     temp_shift[:,:,t] = np.roll(temp_shift[:,:,t],shift*t,axis=1)
                 meas = np.sum(temp_shift,axis=2)
                 meas = meas/nC*2
+                
+                # Shot noise during testing
+                # QE, bit = 0.4, 2048
+                # meas = np.random.binomial((meas*bit/QE).astype(int),QE)
+                # meas = meas/bit
+            
             else:
                 if is_training is True:
                     img = sio.loadmat(data_dir[0] + data_list[ind_set])['img']
@@ -65,10 +71,11 @@ def Data_Generator_File(data_dir, data_list, mask, batch_size, is_training=True,
                     temp_shift[:,:,t] = np.roll(temp_shift[:,:,t],shift*t,axis=1)
                 meas = np.sum(temp_shift,axis=2)
                 meas = meas/nC*2
-                # shot noise
-                #QE, bit = 0.4, 1400
-                #meas = np.random.binomial((meas*bit/QE).astype(int),QE)
-                #meas = meas/bit
+
+                # shot noise during training
+                # QE, bit = 0.4, 1400
+                # meas = np.random.binomial((meas*bit/QE).astype(int),QE)
+                # meas = meas/bit
             # transpose(Phi)*y
             meas_temp = np.zeros((H,W,nC))
             for i in range(nC):

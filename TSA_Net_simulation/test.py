@@ -11,6 +11,7 @@ config_filename = './Model/Config.yaml'
 
 def main():
     ave_folder,ave_config = 'TSA-Model','config_188.yaml'
+    # ave_folder,ave_config = 'Decoder-T1017171803-L0.004-RMSE','config_31.yaml'
     
     folder_id,config_id = ave_folder,ave_config
     with open(config_filename) as handle:
@@ -35,6 +36,7 @@ def main():
 
     with tf.Session(config=tf_config) as sess:
         Cube_Decoder = Decoder_Handler(dataset_dir=dataset_dir, model_config=model_config, sess = sess, is_training=False)
+        sess.run(tf.global_variables_initializer())
         Cube_Decoder.test()
 
 if __name__ == '__main__':

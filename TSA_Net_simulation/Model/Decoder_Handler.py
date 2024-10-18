@@ -9,6 +9,7 @@ import math
 
 from Lib.Data_Processing import *
 from Lib.Utility import *
+from Lib.ms_ssim import *
 from Model.Decoder_Model import Depth_Decoder
 from Model.Base_Handler import Basement_Handler
 
@@ -27,7 +28,7 @@ class Decoder_Handler(Basement_Handler):
         self.gen_valid = Data_Generator_File(self.data_dir, self.valid_list, self.sense_mask, self.batch_size, is_training=False, is_valid=True, is_testing=False)
         self.gen_test = Data_Generator_File(self.data_dir, self.testing_list, self.sense_mask, self.batch_size, is_training=False, is_valid=False, is_testing=True)
         
-        
+
         # Define the general model and the corresponding input
         shape_meas = (self.batch_size, self.H, self.W ,self.nC)      # PhiTy
         shape_mask = (self.H, self.W, self.nC)
@@ -193,12 +194,16 @@ class Decoder_Handler(Basement_Handler):
             recon[tested_batch*self.batch_size:(tested_batch+1)*self.batch_size,:,:,:] = test_output['pred_orig']
         truth = truth.astype(np.float32)
         recon = recon.astype(np.float32)
-        psnr_list = self.psnr(recon,truth)  
+
+        self.ssim(recon, truth)
+        
+        psnr_list = self.psnr(recon,truth)
         psnr_mean = np.mean(np.asarray(psnr_list))
+        for i in range(len(psnr_list)):
+            print(f"Scene{i+1} PSNR = %.2f"%psnr_list[i])
         print('Average PSNR = %.2f'%psnr_mean)
         sio.savemat(self.log_dir+'/TSA_test_result.mat', {'truth':truth, 'recon':recon, 'psnr_list':psnr_list})
     
-
         
     def calculate_scheduled_lr(self, epoch, min_lr=1e-8):
         decay_factor = int(math.ceil((epoch - self.lr_decay_epoch) / float(self.lr_decay_interval)))
@@ -212,6 +217,48 @@ class Decoder_Handler(Basement_Handler):
         self.Decoder_train.set_lr(self.learning_rate) 
         return new_lr
     
+    def ssim(self, img, ref):           # img, ref {10,256,256,28}
+        ssim_list = []
+        
+        # Create TensorFlow session if not using eager execution
+        if not tf.executing_eagerly():
+            sess = tf.Session()
+        
+        for i in range(ref.shape[0]):
+
+            img_scene = tf.convert_to_tensor(img[i:i+1] / float(img[i:i+1].max()), dtype=tf.float32)
+            ref_scene = tf.convert_to_tensor(ref[i:i+1] / float(ref[i:i+1].max()), dtype=tf.float32)
+            
+            # Calculate SSIM for each scene
+            ssim_value = MultiScaleSSIM(
+                img_scene, 
+                ref_scene,
+                max_val=float(ref[i].max()),
+                filter_size=11,
+                filter_sigma=1.5,
+                k1=0.01,
+                k2=0.03
+            )
+            
+            # Evaluate the tensor
+            if tf.executing_eagerly():
+                ssim_numeric = ssim_value.numpy()
+            else:
+                ssim_numeric = sess.run(ssim_value)
+                
+            ssim_list.append(float(ssim_numeric))
+        
+        # Close session if created
+        if not tf.executing_eagerly():
+            sess.close()
+        
+        ssim_mean = np.mean(np.asarray(ssim_list))
+        for i in range(len(ssim_list)):
+            print(f"Scene{i+1} SSIM = {ssim_list[i]:.4f}")
+        print(f'Average SSIM = {ssim_mean:.4f}')
+        
+        return ssim_list
+
     def psnr(self, img, ref):           # img, ref {10,256,256,28}
         psnr_list = []
         for i in range(ref.shape[0]):

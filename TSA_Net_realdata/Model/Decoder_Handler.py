@@ -175,7 +175,7 @@ class Decoder_Handler(Basement_Handler):
     def test(self):
         
         print("Testing Started")
-        self.restore()
+        # self.restore()
         start_time = time.time()
         test_fetches = {'global_step': tf.train.get_or_create_global_step(),
                         'pred_orig':   self.Decoder_test.decoded_image,

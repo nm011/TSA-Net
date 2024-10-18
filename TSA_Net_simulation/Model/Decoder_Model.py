@@ -139,6 +139,9 @@ class Depth_Decoder(Basement_TFModel):
             self.loss = loss_rmse(model_output, ground_truth)
             
         self.metrics = calculate_metrics(model_output, ground_truth)
+
+        print("Metrics : ", self.metrics)
+
         global_step = tf.train.get_or_create_global_step()
             
         if self.is_training:

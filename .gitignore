@@ -1,0 +1,16 @@
+TSA_Net_simulation/Data/Testing_truth
+TSA_Net_simulation/Data/Training_truth
+TSA_Net_simulation/Data/Valid_truth
+TSA_Net_simulation/Lib/__pycache__
+TSA_Net_simulation/Model/__pycache__
+TSA_Net_simulation/Result/Model-Config
+
+TSA_Net_realdata/Result/Testing-Result
+TSA_Net_realdata/Result/Model-Config
+TSA_Net_realdata/Model/__pycache__
+TSA_Net_realdata/Lib/__pycache__
+TSA_Net_realdata/Data/Testing_truth
+TSA_Net_realdata/Data/Training_truth
+TSA_Net_realdata/Data/Valid_truth
+
+*.log
