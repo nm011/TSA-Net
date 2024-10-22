@@ -1,3 +1,19 @@
+# Steps to train and test the model
+## Training
+If TFv1 compatible GPU is available, get the datasets from provided links and place them in appropriate folder. `Data_Preprocessing.py` and `Training_Data_Preparation.py` can be used to rescale data and perform a train-validation split.
+If TFv1 compatible GPU is not available, go to this [kaggle](https://www.kaggle.com/code/mnikhil1/tsa-net-python-3-6-6) notebook, and follow the instructions to train the model. Then download the trained models (download complete folders at Result/Model-Config/Decoder-*).
+
+## Testing
+Testing happens reasonably quickly on a CPU as well.
+Change the model used for testing through varying the parameters, by changing the following line in `test.py`
+```python
+ave_folder, ave_config = 'Decoder-*', 'config-*.yaml'
+```
+
+## Results
+Results provided in Report can be reproduced by changing the required parameters in `Lib/Data_Processing.py` and `test.py`.
+Refer to `infer.ipynb` to display reconstructed images over various channels.
+
 # TSA-Net for CASSI
 This repository contains the codes for paper **End-to-End Low Cost Compressive Spectral Imaging with Spatial-Spectral Self-Attention** (***ECCV (2020)***) by [Ziyi Meng*](https://github.com/mengziyi64), [Jiawei Ma*](https://github.com/Phoenix-V), [Xin Yuan](https://www.bell-labs.com/usr/x.yuan) (*Equal contributions). [[pdf]](https://www.ecva.net/papers/eccv_2020/papers_ECCV/papers/123680188.pdf)  
 We provide simulation data and real data of our system. You can download them by the following links.  
