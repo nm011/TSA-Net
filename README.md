@@ -3,7 +3,7 @@
 If TFv1 compatible GPU is available, get the datasets from provided links and place them in appropriate folder. `Data_Preprocessing.py` and `Training_Data_Preparation.py` can be used to rescale data and perform a train-validation split.
 If TFv1 compatible GPU is not available, go to this [kaggle](https://www.kaggle.com/code/mnikhil1/tsa-net-python-3-6-6) notebook, and follow the instructions to train the model. Then download the trained models (download complete folders at Result/Model-Config/Decoder-*).
 
-Results in reports were derived from these [models](https://drive.google.com/file/d/1sWIcSq-fyOsq1Axx8mRurrweqDNKW0OQ/view?usp=sharing).
+Results in report were derived from these [models](https://drive.google.com/file/d/1sWIcSq-fyOsq1Axx8mRurrweqDNKW0OQ/view?usp=sharing).
 
 ## Testing
 Testing happens reasonably quickly on a CPU as well.
