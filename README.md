@@ -16,6 +16,8 @@ ave_folder, ave_config = 'Decoder-*', 'config-*.yaml'
 Results provided in Report can be reproduced by changing the required parameters in `Lib/Data_Processing.py` and `test.py`.
 Refer to `infer.ipynb` to display reconstructed images over various channels.
 
+### Below lies original project README.
+
 # TSA-Net for CASSI
 This repository contains the codes for paper **End-to-End Low Cost Compressive Spectral Imaging with Spatial-Spectral Self-Attention** (***ECCV (2020)***) by [Ziyi Meng*](https://github.com/mengziyi64), [Jiawei Ma*](https://github.com/Phoenix-V), [Xin Yuan](https://www.bell-labs.com/usr/x.yuan) (*Equal contributions). [[pdf]](https://www.ecva.net/papers/eccv_2020/papers_ECCV/papers/123680188.pdf)  
 We provide simulation data and real data of our system. You can download them by the following links.  
